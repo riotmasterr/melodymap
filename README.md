@@ -1,4 +1,9 @@
 # 🎵 MelodyMap
+## 👥 Team
+
+- **E Sai Brinda** — [@github-username](https://github.com/br-INDA)
+- **Sreehitha G** — [@github-username](https://github.com/riotmasterr)
+- **Harshith H** — [@github-username](https://github.com/harshith2006-coder)
 
 > A graph-based music recommendation system that combines weighted-graph artist similarity with content-based audio-feature filtering for songs.
 
