@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MelodyMap - Music Recommendation System</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .home-screen {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .toggle-label {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-label.active {
+            font-weight: bold;
+            opacity: 1;
+        }
+
+        .toggle-label.inactive {
+            opacity: 0.5;
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 26px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: #667eea;
+        }
+
+        .toggle-knob {
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-knob.active {
+            left: 26px;
+        }
+
+        .search-container {
+            margin-bottom: 20px;
+        }
+
+        input {
+            padding: 14px 24px;
+            width: 320px;
+            border-radius: 30px;
+            border: 2px solid rgba(255,255,255,0.2);
+            outline: none;
+            font-size: 1rem;
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        input::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+
+        button {
+            padding: 14px 28px;
+            border-radius: 30px;
+            border: none;
+            margin-left: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .error {
+            background: rgba(255, 68, 68, 0.2);
+            border: 1px solid #ff4444;
+            padding: 12px 24px;
+            border-radius: 10px;
+            max-width: 500px;
+            margin-top: 10px;
+        }
+
+        .items-container {
+            margin-top: 50px;
+            text-align: center;
+        }
+
+        .items-grid {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 800px;
+            margin-top: 20px;
+        }
+
+        .item-card {
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .item-card:hover {
+            transform: scale(1.05);
+        }
+
+        .visualization-screen {
+            display: none;
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 12px 24px;
+            border-radius: 25px;
+            border: 1px solid #333;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 20px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            color: white;
+            font-size: 12px;
+            z-index: 100;
+        }
+
+        .song-list-screen {
+            display: none;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 40px 20px;
+        }
+
+        .song-header {
+            max-width: 900px;
+            margin: 0 auto 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .song-image {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+
+        .song-info h1 {
+            font-size: 2.5rem;
+            margin: 0 0 10px 0;
+        }
+
+        .song-info p {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            margin: 0 0 15px 0;
+        }
+
+        .song-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9rem;
+        }
+
+        .similar-songs {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .similar-songs h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .similar-song-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .similar-song-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .similar-song-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .similar-song-info {
+            flex: 1;
+        }
+
+        .similar-song-info h3 {
+            margin: 0 0 5px 0;
+            font-size: 1.1rem;
+        }
+
+        .similar-song-info p {
+            margin: 0;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        .similar-song-stats {
+            text-align: right;
+        }
+
+        .match-badge {
+            background: rgba(102, 126, 234, 0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stats-text {
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            pointer-events: none;
+            opacity: 0;
+            border: 1px solid #333;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="homeScreen" class="home-screen">
+        <h1 id="mainTitle">🎵 MelodyMap</h1>
+        <p class="subtitle" id="subtitle">Graph-Based Artist Recommendation</p>
+
+        <div class="toggle-container">
+            <span class="toggle-label active" id="artistLabel">Artist</span>
+            <div class="toggle-switch" id="toggleSwitch" onclick="toggleMode()">
+                <div class="toggle-knob" id="toggleKnob"></div>
+            </div>
+            <span class="toggle-label inactive" id="songLabel">Song</span>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Enter artist name..." />
+            <button onclick="handleSearch()">Discover</button>
+        </div>
+
+        <div id="errorMessage" class="error" style="display: none;"></div>
+
+        <div class="items-container">
+            <p style="margin-bottom: 15px; font-size: 1.1rem; font-weight: 600;">Available Artists:</p>
+            <div class="items-grid" id="itemsGrid"></div>
+        </div>
+    </div>
+
+    <div id="visualizationScreen" class="visualization-screen">
+        <button class="back-button" onclick="goBack()">← Back</button>
+        <div class="legend">
+            <div style="margin-bottom: 8px; font-weight: bold;">Legend:</div>
+            <div>Level 1: Highly Similar (≥80%)</div>
+            <div>Level 2: Moderately Similar (60-80%)</div>
+            <div>Level 3: Somewhat Similar (&lt;60%)</div>
+        </div>
+        <svg id="graphSvg" width="100%" height="100%"></svg>
+    </div>
+
+    <div id="songListScreen" class="song-list-screen">
+        <button class="back-button" onclick="goBack()">← Back</button>
+        <div id="songContent"></div>
+    </div>
+
+    <div id="tooltip"></div>
+
+    <script>
+        let currentMode = 'artist'; // 'artist' or 'song'
+        let artistsData = {};
+        let songsData = {};
+
+        // Gradient colors for song thumbnails
+        const gradients = [
+            ['#667eea', '#764ba2'],
+            ['#f093fb', '#f5576c'],
+            ['#4facfe', '#00f2fe'],
+            ['#43e97b', '#38f9d7'],
+            ['#fa709a', '#fee140']
+        ];
+
+        // Toggle mode
+        function toggleMode() {
+            currentMode = currentMode === 'artist' ? 'song' : 'artist';
+            const toggleSwitch = document.getElementById('toggleSwitch');
+            const toggleKnob = document.getElementById('toggleKnob');
+            const artistLabel = document.getElementById('artistLabel');
+            const songLabel = document.getElementById('songLabel');
+            const mainTitle = document.getElementById('mainTitle');
+            const subtitle = document.getElementById('subtitle');
+            const searchInput = document.getElementById('searchInput');
+
+            if (currentMode === 'song') {
+                toggleSwitch.classList.add('active');
+                toggleKnob.classList.add('active');
+                artistLabel.classList.remove('active');
+                artistLabel.classList.add('inactive');
+                songLabel.classList.remove('inactive');
+                songLabel.classList.add('active');
+                mainTitle.textContent = '🎶 Songs Finder';
+                subtitle.textContent = 'Find Similar Songs';
+                searchInput.placeholder = 'Enter song name...';
+                loadSongs();
+            } else {
+                toggleSwitch.classList.remove('active');
+                toggleKnob.classList.remove('active');
+                artistLabel.classList.remove('inactive');
+                artistLabel.classList.add('active');
+                songLabel.classList.remove('active');
+                songLabel.classList.add('inactive');
+                mainTitle.textContent = '🎵 MelodyMap';
+                subtitle.textContent = 'Graph-Based Artist Recommendation';
+                searchInput.placeholder = 'Enter artist name...';
+                loadArtists();
+            }
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        // Load artists
+        async function loadArtists() {
+            const response = await fetch('/api/artists');
+            const data = await response.json();
+            artistsData = data.data;
+            const itemsGrid = document.getElementById('itemsGrid');
+            itemsGrid.innerHTML = '';
+
+            data.artists.forEach(artist => {
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                card.style.background = `linear-gradient(135deg, ${artistsData[artist].color}40, ${artistsData[artist].color}20)`;
+                card.style.border = `2px solid ${artistsData[artist].color}`;
+                card.textContent = artist;
+                card.onclick = () => showArtistVisualization(artist);
+                itemsGrid.appendChild(card);
+            });
+        }
+
+        // Load songs
+        async function loadSongs() {
+            const response = await fetch('/api/songs');
+            const data = await response.json();
+            songsData = data.data;
+            const itemsGrid = document.getElementById('itemsGrid');
+            itemsGrid.innerHTML = '';
+
+            data.songs.forEach(song => {
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                card.style.background = 'linear-gradient(135deg, #667eea40, #764ba220)';
+                card.style.border = '2px solid #667eea';
+                card.textContent = song;
+                card.onclick = () => showSongList(song);
+                itemsGrid.appendChild(card);
+            });
+        }
+
+        // Handle search
+        async function handleSearch() {
+            const searchInput = document.getElementById('searchInput').value.trim();
+            const errorMessage = document.getElementById('errorMessage');
+
+            if (currentMode === 'artist') {
+                const artist = Object.keys(artistsData).find(
+                    a => a.toLowerCase() === searchInput.toLowerCase()
+                );
+                if (artist) {
+                    showArtistVisualization(artist);
+                    errorMessage.style.display = 'none';
+                } else {
+                    errorMessage.textContent = `Artist not found. Try: ${Object.keys(artistsData).join(', ')}`;
+                    errorMessage.style.display = 'block';
+                }
+            } else {
+                const song = Object.keys(songsData).find(
+                    s => s.toLowerCase() === searchInput.toLowerCase()
+                );
+                if (song) {
+                    showSongList(song);
+                    errorMessage.style.display = 'none';
+                } else {
+                    errorMessage.textContent = `Song not found. Try: ${Object.keys(songsData).join(', ')}`;
+                    errorMessage.style.display = 'block';
+                }
+            }
+        }
+
+        // Show artist visualization
+        async function showArtistVisualization(artist) {
+            const response = await fetch(`/api/artist/${encodeURIComponent(artist)}`);
+            const data = await response.json();
+
+            document.getElementById('homeScreen').style.display = 'none';
+            document.getElementById('visualizationScreen').style.display = 'block';
+
+            drawGraph(data);
+        }
+
+        // Show song list
+        async function showSongList(song) {
+            const response = await fetch(`/api/song/${encodeURIComponent(song)}`);
+            const result = await response.json();
+            const data = result.data;
+
+            document.getElementById('homeScreen').style.display = 'none';
+            document.getElementById('songListScreen').style.display = 'block';
+
+            const content = document.getElementById('songContent');
+            content.innerHTML = `
+                <div class="song-header">
+                    <div class="song-image">🎵</div>
+                    <div class="song-info">
+                        <h1>${song}</h1>
+                        <p>by ${data.artist}</p>
+                        <div class="song-stats">
+                            <span>BPM: ${data.bpm}</span>
+                            <span>Energy: ${data.energy}%</span>
+                            <span>Danceability: ${data.danceability}%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="similar-songs">
+                    <h2>Similar Songs</h2>
+                    ${data.similar.map((s, idx) => `
+                        <div class="similar-song-card">
+                            <div class="similar-song-image" style="background: linear-gradient(135deg, ${gradients[idx % 5][0]}, ${gradients[idx % 5][1]});">
+                                🎵
+                            </div>
+                            <div class="similar-song-info">
+                                <h3>${s.name}</h3>
+                                <p>${s.artist}</p>
+                            </div>
+                            <div class="similar-song-stats">
+                                <div class="match-badge">${s.similarity}% Match</div>
+                                <div class="stats-text">${s.bpm} BPM • ${s.energy}% Energy</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Draw graph visualization
+        function drawGraph(data) {
+            const svg = d3.select('#graphSvg');
+            svg.selectAll('*').remove();
+
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const cx = width / 2;
+            const cy = height / 2;
+
+            const rings = [180, 320, 450];
+
+            // Draw background
+            svg.append('rect')
+                .attr('width', width)
+                .attr('height', height)
+                .attr('fill', '#000000');
+
+            // Draw rings
+            rings.forEach(r => {
+                svg.append('circle')
+                    .attr('cx', cx)
+                    .attr('cy', cy)
+                    .attr('r', r)
+                    .style('fill', 'none')
+                    .style('stroke', '#1a1a1a')
+                    .style('stroke-width', 1);
+            });
+
+            // Draw connections and nodes for each level
+            [
+                { nodes: data.levels.level1, radius: rings[0], level: 1 },
+                { nodes: data.levels.level2, radius: rings[1], level: 2 },
+                { nodes: data.levels.level3, radius: rings[2], level: 3 }
+            ].forEach(({ nodes, radius, level }) => {
+                nodes.forEach((node, i) => {
+                    const angle = (i / nodes.length) * 2 * Math.PI - Math.PI / 2;
+                    const x = cx + radius * Math.cos(angle);
+                    const y = cy + radius * Math.sin(angle);
+
+                    // Draw line
+                    svg.append('line')
+                        .attr('x1', cx)
+                        .attr('y1', cy)
+                        .attr('x2', x)
+                        .attr('y2', y)
+                        .attr('stroke', data.color)
+                        .attr('stroke-width', 1)
+                        .attr('opacity', 0.3);
+
+                    // Draw node
+                    svg.append('circle')
+                        .attr('cx', x)
+                        .attr('cy', y)
+                        .attr('r', 4)
+                        .attr('fill', data.color)
+                        .style('cursor', 'pointer')
+                        .on('mouseover', (event) => showTooltip(event, node, level))
+                        .on('mouseout', hideTooltip);
+
+                    // Draw text
+                    const textAnchor = x > cx + 20 ? 'start' : x < cx - 20 ? 'end' : 'middle';
+                    const dx = x > cx + 20 ? 8 : x < cx - 20 ? -8 : 0;
+                    const dy = Math.abs(x - cx) <= 20 ? (y > cy ? 15 : -8) : 4;
+
+                    svg.append('text')
+                        .attr('x', x)
+                        .attr('y', y)
+                        .attr('dx', dx)
+                        .attr('dy', dy)
+                        .attr('text-anchor', textAnchor)
+                        .attr('fill', '#ffffff')
+                        .attr('font-size', '12px')
+                        .style('cursor', 'pointer')
+                        .text(node.node)
+                        .on('mouseover', (event) => showTooltip(event, node, level))
+                        .on('mouseout', hideTooltip);
+                });
+            });
+
+            // Draw center node
+            svg.append('circle')
+                .attr('cx', cx)
+                .attr('cy', cy)
+                .attr('r', 60)
+                .style('fill', data.color)
+                .style('stroke', '#ffffff')
+                .style('stroke-width', 3);
+
+            svg.append('text')
+                .attr('x', cx)
+                .attr('y', cy)
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'middle')
+                .attr('fill', '#000000')
+                .attr('font-size', '18px')
+                .attr('font-weight', 'bold')
+                .text(data.artist);
+        }
+
+        function showTooltip(event, node, level) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.innerHTML = `
+                <strong>${node.node}</strong><br/>
+                Similarity: ${(node.weight * 100).toFixed(1)}%<br/>
+                Level: ${level}
+            `;
+            tooltip.style.left = (event.pageX + 15) + 'px';
+            tooltip.style.top = (event.pageY - 10) + 'px';
+            tooltip.style.opacity = 1;
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').style.opacity = 0;
+        }
+
+        function goBack() {
+            document.getElementById('homeScreen').style.display = 'flex';
+            document.getElementById('visualizationScreen').style.display = 'none';
+            document.getElementById('songListScreen').style.display = 'none';
+            document.getElementById('searchInput').value = '';
+        }
+
+        // Handle Enter key
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSearch();
+        });
+
+        // Initialize
+        loadArtists();
+    </script>
+</body>
+</html>
